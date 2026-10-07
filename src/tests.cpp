@@ -7,7 +7,9 @@ int my_strlen(char *str) {
      */
 
     // IMPLEMENT YOUR CODE HERE
-    return 0;
+    int length = 0;
+    while (str[length] != '\0') ++length;
+    return length;
 }
 
 
@@ -19,6 +21,10 @@ void my_strcat(char *str_1, char *str_2) {
      */
 
     // IMPLEMENT YOUR CODE HERE
+    int end = my_strlen(str_1);
+    int i = 0;
+    while (str_2[i] != '\0') str_1[end++] = str_2[i++];
+    str_1[end] = '\0';
 }
 
 
@@ -31,7 +37,13 @@ char* my_strstr(char *s, char *p) {
      */
 
     // IMPLEMENT YOUR CODE HERE
-    return 0;
+    if (*p == '\0') return s;
+    for (int i = 0; s[i] != '\0'; ++i) {
+        int j = 0;
+        while (p[j] != '\0' && s[i + j] != '\0' && s[i + j] == p[j]) ++j;
+        if (p[j] == '\0') return s + i;
+    }
+    return nullptr;
 }
 
 
@@ -96,7 +108,10 @@ void rgb2gray(float *in, float *out, int h, int w) {
      */
 
     // IMPLEMENT YOUR CODE HERE
-    // ...
+    for (int i = 0; i < h * w; ++i) {
+        out[i] = 0.2989f * in[3 * i] + 0.5870f * in[3 * i + 1]
+               + 0.1140f * in[3 * i + 2];
+    }
 }
 
 // 练习5，实现图像处理算法 resize：缩小或放大图像
@@ -198,7 +213,26 @@ void resize(float *in, float *out, int h, int w, int c, float scale) {
 
     int new_h = h * scale, new_w = w * scale;
     // IMPLEMENT YOUR CODE HERE
-
+    if (h <= 0 || w <= 0 || c <= 0 || scale <= 0) return;
+    for (int y = 0; y < new_h; ++y) {
+        const float sy = y / scale;
+        const int y0 = static_cast<int>(sy);
+        const int y1 = (y0 + 1 < h) ? y0 + 1 : h - 1;
+        const float dy = sy - y0;
+        for (int x = 0; x < new_w; ++x) {
+            const float sx = x / scale;
+            const int x0 = static_cast<int>(sx);
+            const int x1 = (x0 + 1 < w) ? x0 + 1 : w - 1;
+            const float dx = sx - x0;
+            for (int k = 0; k < c; ++k) {
+                const float top = in[(y0 * w + x0) * c + k] * (1 - dx)
+                                + in[(y0 * w + x1) * c + k] * dx;
+                const float bottom = in[(y1 * w + x0) * c + k] * (1 - dx)
+                                   + in[(y1 * w + x1) * c + k] * dx;
+                out[(y * new_w + x) * c + k] = top * (1 - dy) + bottom * dy;
+            }
+        }
+    }
 }
 
 
@@ -221,4 +255,16 @@ void hist_eq(float *in, int h, int w) {
      */
 
     // IMPLEMENT YOUR CODE HERE
+    if (h <= 0 || w <= 0) return;
+    const int count = h * w;
+    int histogram[256] = {};
+    float mapping[256] = {};
+    // 浮点灰度向下取整分桶，使用累计分布 CDF * 255 映射。
+    for (int i = 0; i < count; ++i) ++histogram[static_cast<int>(in[i])];
+    int cumulative = 0;
+    for (int level = 0; level < 256; ++level) {
+        cumulative += histogram[level];
+        mapping[level] = 255.0f * cumulative / count;
+    }
+    for (int i = 0; i < count; ++i) in[i] = mapping[static_cast<int>(in[i])];
 }
